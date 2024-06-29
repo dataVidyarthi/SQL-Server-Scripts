@@ -24,11 +24,11 @@ PART 2 -Create a SQL server Agent Job
 USE [msdb]
 GO
 
-/****** Object:  Job [DBA-CaptureIO]    Script Date: 5/11/2024 12:49:34 PM ******/
+
 BEGIN TRANSACTION
 DECLARE @ReturnCode INT
 SELECT @ReturnCode = 0
-/****** Object:  JobCategory [[Uncategorized (Local)]]    Script Date: 5/11/2024 12:49:34 PM ******/
+
 IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'[Uncategorized (Local)]' AND category_class=1)
 BEGIN
 EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'JOB', @type=N'LOCAL', @name=N'[Uncategorized (Local)]'
@@ -48,7 +48,7 @@ EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'DBA-CaptureIO',
 		@category_name=N'[Uncategorized (Local)]', 
 		@owner_login_name=N'sa', @job_id = @jobId OUTPUT
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
-/****** Object:  Step [Capture-IO]    Script Date: 5/11/2024 12:49:36 PM ******/
+
 EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'Capture-IO', 
 		@step_id=1, 
 		@cmdexec_success_code=0, 
@@ -111,7 +111,7 @@ EndSave:
 GO
 
 
-PART 3 -Read the DELTA information
+PART 3 -Read the DELTA information for any Database that concerns
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 
 SELECT
