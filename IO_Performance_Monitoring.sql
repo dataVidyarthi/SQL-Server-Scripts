@@ -82,7 +82,7 @@ FROM sys.dm_io_virtual_file_stats(NULL, NULL) AS vfs
 JOIN sys.master_files AS mf 
     ON vfs.database_id = mf.database_id AND vfs.file_id = mf.file_id;
 ', 
-		@database_name=N'DBATools', 
+		@database_name=N'DBATools',  -- Your DATABASE where information gets tracked / or table created.
 		@flags=0
 IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback
 EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = 1
@@ -137,9 +137,51 @@ FROM (
         number_of_writes - LAG(number_of_writes, 1, number_of_writes) OVER (PARTITION BY file_id ORDER BY capture_time) AS WriteDelta,
         io_stall_read_ms - LAG(io_stall_read_ms, 1, io_stall_read_ms) OVER (PARTITION BY file_id ORDER BY capture_time) AS io_stall_read_ms_delta,
         io_stall_write_ms - LAG(io_stall_write_ms, 1, io_stall_write_ms) OVER (PARTITION BY file_id ORDER BY capture_time) AS io_stall_write_ms_delta
-    FROM [DBATools].[dbo].[IO_Stats]
+    FROM [dbo].[IO_Stats]
     WHERE DB_NAME(database_id) = ''  -- Your Database Name here
 ) AS DerivedTable
 ORDER BY file_id, capture_time;
+
+
+
+PART 4- READ the Cummulative information
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+WITH LatestCapture AS (
+    SELECT 
+        DB_NAME(database_id) AS DatabaseName,
+        capture_time,
+        database_id,
+        file_id,
+        file_type,
+        number_of_reads,
+        bytes_read,
+        number_of_writes,
+        bytes_written,
+        io_stall_read_ms,
+        io_stall_write_ms,
+        sample_ms,
+        avg_read_latency_ms,
+        avg_write_latency_ms,
+        ROW_NUMBER() OVER (PARTITION BY database_id, file_type ORDER BY capture_time DESC) AS rn
+    FROM [dbo].[IO_Stats]
+)
+SELECT 
+    DatabaseName,
+    capture_time,
+    database_id,
+    file_id,
+    file_type,
+    number_of_reads,
+    bytes_read,
+    number_of_writes,
+    bytes_written,
+    io_stall_read_ms,
+    io_stall_write_ms,
+    sample_ms,
+    avg_read_latency_ms,
+    avg_write_latency_ms
+FROM LatestCapture
+WHERE rn = 1;
 
 
